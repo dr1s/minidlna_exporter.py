@@ -24,6 +24,7 @@
 
 import argparse
 import threading
+import socket
 import urllib.request
 from bs4 import BeautifulSoup
 from prometheus_client import Gauge, generate_latest
@@ -42,8 +43,15 @@ class minidlna_exporter:
         self.client_stats = dict()
         self.file_stats = dict()
         self.metrics = dict()
-        self.metrics['files'] = Gauge('minidlna_files', 'file metrcis', [ 'type' ])
-        self.metrics['clients'] = Gauge('minidlna_clients', 'client metrics', ['type', 'ip_address', 'hw_address'])
+        self.metrics['files'] = Gauge(  'minidlna_files',
+                                        'file metrcis',
+                                        [ 'type' ])
+        self.metrics['clients'] = Gauge(    'minidlna_clients',
+                                            'client metrics',
+                                            ['type',
+                                            'ip_address',
+                                            'hostname',
+                                            'hw_address'])
         self.update_metrics()
 
     def update_data(self):
@@ -67,9 +75,17 @@ class minidlna_exporter:
         for i in self.client_stats:
             c = self.client_stats[i]
             if c['active']:
-                self.metrics['clients'].labels(c['type'], c['ip_address'], c['hw_address']).set('1')
+                self.metrics['clients'].labels(
+                                            c['type'],
+                                            c['ip_address'],
+                                            c['hostname'],
+                                            c['hw_address']).set('1')
             else:
-                self.metrics['clients'].labels(c['type'], c['ip_address'], c['hw_address']).set('0')
+                self.metrics['clients'].labels(
+                                            c['type'],
+                                            c['ip_address'],
+                                            c['hostname'],
+                                            c['hw_address']).set('0')
         for i in self.file_stats:
             self.metrics['files'].labels(i).set(self.file_stats[i])
         return generate_latest()
@@ -93,6 +109,11 @@ class minidlna_exporter:
                 if col < len(td):
                     col += 1
             client['active'] = True
+
+            client['hostname'] = socket.getfqdn(client['ip_address'])
+            if 'in-addr.arp' in client['hostname']:
+                client['hostname'] = client['ip_address']
+
             results[client['hw_address']] = client
         return results
 
