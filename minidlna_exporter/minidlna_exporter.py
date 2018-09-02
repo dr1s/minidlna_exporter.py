@@ -47,7 +47,7 @@ class minidlna_exporter:
         self.update_metrics()
 
     def update_data(self):
-        response = urllib.request.urlopen(self.url)
+        response = urllib.request.urlopen('http://%s' % self.url)
         data = response.read()
         soup = BeautifulSoup(data, 'html.parser')
         tables = soup.find_all('table')
@@ -130,7 +130,7 @@ def main():
         description='minidlna_exporter')
     parser.add_argument('-m', '--minidlna',
         help='minidlna adress',
-        default='http://localhost:8200')
+        default='localhost:8200')
     parser.add_argument('-p', '--port', type=int,
         help='port minidlna_exporter is listening on',
         default=9312)

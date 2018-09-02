@@ -70,6 +70,6 @@ The exporter scrapes minidlna's status site and exposes it as prometheus metrics
 
 ### Usage Example
 
-    minidlna_exporter --minidlna http://localhost:8200 --interface 0.0.0.0 --port 9312
+    minidlna_exporter --minidlna localhost:8200 --interface 0.0.0.0 --port 9312
 
 The previous used arguements are the default options. If nothing needs to be changed, minidlna_exporter can be started without arguments.
