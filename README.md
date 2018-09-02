@@ -3,6 +3,11 @@
 A prometheus exporter for minidlna written in Python 3.
 The exporter scrapes minidlna's status site and exposes it as prometheus metrics.
 
+![Grafana Dashboard](grafana.png)
+See [grafana_dashboard.json](grafana_dashboard.json)
+
+
+## Content
 - [minidlna_exporter.py](#minidlnaexporterpy)
 	- [Metrics](#metrics)
 	- [Setup](#setup)
