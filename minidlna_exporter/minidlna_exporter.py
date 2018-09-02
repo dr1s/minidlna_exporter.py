@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 
+#   MIT License
+#
+#   Copyright (c) 2018 Daniel Schmitz
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
+
 import argparse
 import threading
 import urllib.request
@@ -30,13 +52,24 @@ class minidlna_exporter:
         soup = BeautifulSoup(data, 'html.parser')
         tables = soup.find_all('table')
         self.file_stats = self.parse_data_files(tables[0])
-        self.client_stats = self.parse_data_clients(tables[1])
+        client_stats = self.parse_data_clients(tables[1])
+
+        for i in self.client_stats:
+            if not i in client_stats:
+                self.client_stats[i]['active'] = False
+        for j in client_stats:
+            if j not in self.client_stats:
+                self.client_stats[j] = client_stats[j]
+
 
     def update_metrics(self):
         self.update_data()
         for i in self.client_stats:
             c = self.client_stats[i]
-            self.metrics['clients'].labels(c['type'], c['ip_address'], c['hw_address']).set('1')
+            if c['active']:
+                self.metrics['clients'].labels(c['type'], c['ip_address'], c['hw_address']).set('1')
+            else:
+                self.metrics['clients'].labels(c['type'], c['ip_address'], c['hw_address']).set('0')
         for i in self.file_stats:
             self.metrics['files'].labels(i).set(self.file_stats[i])
         return generate_latest()
@@ -59,18 +92,9 @@ class minidlna_exporter:
                 client[title[col].string.lower().replace(' ','_')] = td[col].string.lower()
                 if col < len(td):
                     col += 1
+            client['active'] = True
             results[client['hw_address']] = client
-
         return results
-
-
-    def print_data(self, data):
-        for i in data:
-            if not isinstance(i, dict):
-                print('%s: %s' %(i, data[i]))
-            else:
-                for l in i:
-                    print('%s: %s' % (l, i[l]))
 
     def make_prometheus_app(self):
 
