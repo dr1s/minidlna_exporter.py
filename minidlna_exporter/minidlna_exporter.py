@@ -66,8 +66,7 @@ class minidlna_exporter:
             if not i in client_stats:
                 self.client_stats[i]['active'] = False
         for j in client_stats:
-            if j not in self.client_stats:
-                self.client_stats[j] = client_stats[j]
+            self.client_stats[j] = client_stats[j]
 
 
     def update_metrics(self):
