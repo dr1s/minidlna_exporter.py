@@ -30,9 +30,6 @@ from bs4 import BeautifulSoup
 from prometheus_client import Gauge, generate_latest
 from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
 
-__VERSION__ = '0.1'
-
-
 class minidlna_exporter:
 
     class _SilentHandler(WSGIRequestHandler):
