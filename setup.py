@@ -14,6 +14,9 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=['prometheus_client', 'beautifulsoup4'],
     packages=find_packages(),
-    include_package_data = True,
-    entry_points={'console_scripts': ['minidlna_exporter=minidlna_exporter.minidlna_exporter:main']},
+    include_package_data=True,
+    entry_points={
+        'console_scripts':
+        ['minidlna_exporter=minidlna_exporter.minidlna_exporter:main']
+    },
 )
