@@ -1,18 +1,17 @@
 FROM alpine:3.8
-MAINTAINER dr1s
 
 RUN apk add --no-cache python3 && \
     pip3 install --upgrade pip setuptools && \
-    pip3 install virtualenv
+    pip3 install pipenv
 
-WORKDIR /minidlna_exporter
+WORKDIR /exporter
 
-COPY . /minidlna_exporter
+COPY pihole_exporter/pihole_exporter.py pihole_exporter.py
+COPY Pipfile Pipfile
+COPY Pipfile.lock Pipfile.lock
 
-RUN virtualenv -p python3 /env && \
-    /env/bin/python3 setup.py install && \
-    rm -rf /minidlna_exporter
+RUN set -ex && pipenv install --deploy --system
 
-EXPOSE 9312
+EXPOSE EXPOSE 9312
 
-ENTRYPOINT ["/env/bin/minidlna_exporter"]
+ENTRYPOINT python3 pihole_exporter.py

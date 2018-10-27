@@ -57,7 +57,7 @@ See [grafana_dashboard.json](grafana_dashboard.json)
 ### manual
     git clone https://github.com/dr1s/minidlna_exporter.py.git
     docker build -t dr1s/minidlna_exporter .
-    docker run -d --net=host -t dr1s/minidlna_exporter
+    docker run -d -p 9312:9312 -t dr1s/minidlna_exporter
 
 # Usage
     usage: minidlna_exporter.py [-h] [-m MINIDLNA] [-p PORT] [-i INTERFACE]
