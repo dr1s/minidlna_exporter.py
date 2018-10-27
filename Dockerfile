@@ -6,7 +6,7 @@ RUN apk add --no-cache python3 && \
 
 WORKDIR /exporter
 
-COPY pihole_exporter/pihole_exporter.py pihole_exporter.py
+COPY minidlna_exporter/minidlna_exporter.py minidlna_exporter.py
 COPY Pipfile Pipfile
 COPY Pipfile.lock Pipfile.lock
 
@@ -14,4 +14,4 @@ RUN set -ex && pipenv install --deploy --system
 
 EXPOSE EXPOSE 9312
 
-ENTRYPOINT python3 pihole_exporter.py
+ENTRYPOINT python3 minidlna_exporter.py
