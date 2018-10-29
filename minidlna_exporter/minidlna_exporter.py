@@ -23,62 +23,22 @@
 #   SOFTWARE.
 
 import argparse
-import threading
 import socket
 import urllib.request
 from bs4 import BeautifulSoup
-from prometheus_client import Gauge, generate_latest
-from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
+from prometheus_metrics import exporter, generate_latest
 
 
-class minidlna_exporter:
-    class _SilentHandler(WSGIRequestHandler):
-        """WSGI handler that does not log requests."""
-
-        def log_message(self, format, *args):
-            """Log nothing."""
-
+class minidlna_exporter(exporter):
     def __init__(self, url):
+        super().__init__()
         self.url = url
         self.client_stats = dict()
-        self.file_stats = dict()
-        self.metrics = dict()
-        self.metrics['files'] = Gauge('minidlna_files', 'file metrcis',
-                                      ['type'])
-        self.metrics['clients'] = Gauge(
-            'minidlna_clients', 'client metrics',
+        self.metrics_handler.add_metric_label('minidlna_files', 'type')
+        self.metrics_handler.add_metric_labels(
+            'minidlna_clients',
             ['type', 'ip_address', 'hostname', 'hw_address'])
         self.update_metrics()
-
-    def update_data(self):
-        response = urllib.request.urlopen('http://%s' % self.url)
-        data = response.read()
-        soup = BeautifulSoup(data, 'html.parser')
-        tables = soup.find_all('table')
-        self.file_stats = self.parse_data_files(tables[0])
-        client_stats = self.parse_data_clients(tables[1])
-
-        for i in self.client_stats:
-            if not i in client_stats:
-                self.client_stats[i]['active'] = False
-        for j in client_stats:
-            self.client_stats[j] = client_stats[j]
-
-    def update_metrics(self):
-        self.update_data()
-        for i in self.client_stats:
-            c = self.client_stats[i]
-            if c['active']:
-                self.metrics['clients'].labels(c['type'], c['ip_address'],
-                                               c['hostname'],
-                                               c['hw_address']).set('1')
-            else:
-                self.metrics['clients'].labels(c['type'], c['ip_address'],
-                                               c['hostname'],
-                                               c['hw_address']).set('0')
-        for i in self.file_stats:
-            self.metrics['files'].labels(i).set(self.file_stats[i])
-        return generate_latest()
 
     def parse_data_files(self, table):
         tds = [row.findAll('td') for row in table.findAll('tr')]
@@ -107,9 +67,34 @@ class minidlna_exporter:
                 client['hostname'] = client['ip_address']
 
             results[client['hw_address']] = client
+
         return results
 
-    def make_prometheus_app(self):
+    def update_metrics(self):
+        response = urllib.request.urlopen('http://%s' % self.url)
+        data = response.read()
+        soup = BeautifulSoup(data, 'html.parser')
+        tables = soup.find_all('table')
+        file_stats = self.parse_data_files(tables[0])
+        client_stats = self.parse_data_clients(tables[1])
+
+        self.metrics_handler.update_metric('minidlna_files', file_stats)
+
+        clients = list()
+        for i in client_stats:
+            c = client_stats[i]
+            active = 0
+            if c['active']:
+                active = 1
+            client = [
+                c['type'], c['ip_address'], c['hostname'], c['hw_address'],
+                active
+            ]
+            clients.append(client)
+        self.metrics_handler.update_metric('minidlna_clients', clients)
+        return generate_latest()
+
+    def make_wsgi_app(self):
         def prometheus_app(environ, start_response):
             output = self.update_metrics()
             status = str('200 OK')
@@ -118,23 +103,6 @@ class minidlna_exporter:
             return [output]
 
         return prometheus_app
-
-    def make_server(self, interface, port):
-        server_class = WSGIServer
-
-        if ':' in interface:
-            if getattr(server_class, 'address_family') == socket.AF_INET:
-                server_class.address_family = socket.AF_INET6
-
-        print("* Listening on %s:%s" % (interface, port))
-        self.httpd = make_server(
-            interface,
-            port,
-            self.make_prometheus_app(),
-            server_class=server_class,
-            handler_class=self._SilentHandler)
-        t = threading.Thread(target=self.httpd.serve_forever)
-        t.start()
 
 
 def main():

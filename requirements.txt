@@ -1,2 +1,3 @@
 beautifulsoup4
-prometheus_client
+
+promethues_metrics>=0.1.3
